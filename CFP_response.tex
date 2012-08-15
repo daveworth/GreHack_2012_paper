@@ -47,6 +47,8 @@
 % http://www.ctan.org/tex-archive/macros/latex/contrib/cite/
 % The documentation is contained in the cite.sty file itself.
 
+\usepackage{listings}
+
 % *** GRAPHICS RELATED PACKAGES ***
 %
 \ifCLASSINFOpdf
@@ -233,26 +235,8 @@
 
 % *** PDF, URL AND HYPERLINK PACKAGES ***
 %
-\usepackage{url}
-% url.sty was written by Donald Arseneau. It provides better support for
-% handling and breaking URLs. url.sty is already installed on most LaTeX
-% systems. The latest version can be obtained at:
-% http://www.ctan.org/tex-archive/macros/latex/contrib/misc/
-% Read the url.sty source comments for usage information. Basically,
-% \url{my_url_here}.
-
-
-
-
-
-% *** Do not adjust lengths that control margins, column widths, etc. ***
-% *** Do not use packages that alter fonts (such as pslatex).         ***
-% There should be no need to do such things with IEEEtran.cls V1.6 and later.
-% (Unless specifically asked to do so by the journal or conference you plan
-% to submit to, of course. )
-
-
-% correct bad hyphenation here
+%\usepackage{url}
+\usepackage[pagebackref=true]{hyperref}
 \hyphenation{op-tical net-works semi-conduc-tor}
 
 
@@ -280,12 +264,16 @@
 
 \begin{abstract}
 %\boldmath
-Static analysis in dynamic languages is a well known \cite{},
-\cite{} difficult problem in computer science theory.  Dynamic
-langauges such as Ruby provide impressive programming power thanks to expressive
-language constructs and flexible typing. Ruby, in particular, is strongly
-leveraged in the web development ecosystems thanks to well known and supported
-frameworks such as Ruby on Rails and Sinatra.
+Static analysis in dynamic languages is a well known difficult problem in computer
+science, with a great deal of emphasis being put on type
+inference\cite{Furr:2009:STI:1529282.1529700}.  The problem is so
+difficult that the opening line of Holkner and Harland's paper on static analysis in
+Python opens with ``The Python programming language is typical among dynamic languages in
+that programs written in it are not susceptible to static
+analysis.''\cite{Holkner:2009:EDB:1862659.1862665}  Dynamic languages such as Ruby provide
+impressive programming power thanks to expressive language constructs and flexible typing.
+Ruby, in particular, is strongly leveraged in the web development ecosystems thanks to
+well known and supported frameworks such as Ruby on Rails and Sinatra.
 
 Web application security is a particularly difficult area for a number of
 reasons including the low-barrier to entry for new developers combined with the
@@ -322,51 +310,216 @@ exposed by the Ruby on Rails framework.
 \section{Introduction}
 
 Ruby on Rails is a popular web framework which provides an Model-View-Controller
-architecture along with many ancillary tools to make complicated web
+architecture along with many ancillary tools to engineer complicated web
 applications with a minimum of code as well as a minimum of exposed complexity.
+The fundamental principal employed to reduce complexity is ``convention over
+configuration'' meaning that standardized methods are used to achieve standard
+functionality.  In many ways this philosophy resembles that of the Python
+community and its ``There's only one way to do it'' philosophy.  The
+advantage to such a philosophy is that one can successfully rely on the
+conventions to expose large families of security vulnerabilities present in
+modern web applications.  The Ruby on Rails Security Guide\cite{rails_security}
+lists a comprehensive collection of general web application security
+vulnerabilities, and a number of Rails specific vulnerabilities, and their
+mitigations as provided for by the framework.  Justin Collins, the original
+author of the Brakeman Scanner for Ruby on Rails applications exploited exactly
+this convention-based approach, and these Rails specific issues, in designing
+the scanner.
 
-\section{SQLi Detection}
-SQL Injection, along with cross site scripting and cross-site request forgery,
-represent the most well-known and common web vulnerability classes that span all
-languages.  Ruby on Rails, like any other web framework can be made susceptible
-to such flaws.  Moreover, often the methods which are vulnerable to SQLi are not
-explicitly defined by either Ruby on Rails itself or by the user, but rather are
-automatically generated.  The generation of these methods is based on
-interrogation of the database which backs a given model wherein each column in
-the database is mapped to an attribute of the model via the Object Relationship
-Model (ORM).  Thus for a given user model with two database columns ``name'' and
-``email'' the User class itself responds to a variety of methods, some explitly
-defined such as \texttt{User.all}, which returns all users in the system,
-and dynamic methods based on its attributes such as
+\section{Brakeman Scanner Architecture}
+
+At a high-level the BrakemanScanner treats Ruby as an acceptable Lisp and uses
+existing parsers to decompose the code into S-expressions\cite{sexp_for_rubyists}.  Each
+s-expression can then be interrogated for its type, for example a function definition, a
+collection of arguments, a Ruby block, a function call, or a string interpolation.  These
+basic building blocks forming an abstract syntax tree are the fundamental objects used by
+Brakeman, along with its knowledge of Rails conventions, to analyze a given Rails
+application for potential security vulnerabilities.
+
+Moreover, some basic ``taint flow analysis'' can be performed based on the conventions
+within Rails.  The means by which user-input enters the system is fairly consistent with
+three of the major sources being the cookie collection, a parameters hash available in, an
+used as the main source of input to, controller actions, and the request object which
+wraps up the context of a given request to the application.  Due to the consistency of the
+sources we may reason concisely about the danger presented by relying upon input from
+those sources directly in contexts which have any potential security implications.
+
+\section{Insecure User Input}
+
+The standard adage of ``never trust user(-controlled) input'' is easily
+proffered but one of the fundamental realities of developing applications
+is that we \emph{must} act upon their data in some way.  As such it is key to
+limit the ways in which we trust user-controlled data rather than simply
+attempting to avoid the problem.
+
+\subsection{SQLi Detection}
+
+SQL Injection (SQLi), along with cross site scripting (XSS) and cross-site request forgery
+(CSRF), represent the most well-known and common, language independent, web vulnerability
+classes.  Ruby on Rails, like any other web framework can be made susceptible to such
+flaws though it does provide a number of mitigations and best practices to prevent them.
+Moreover, many of the methods which automatically generate SQL are not explicitly defined
+by either Ruby on Rails itself or by the user, but rather are automatically generated at
+runtime by Rails.  The generation of these methods is based on interrogation of the
+database which backs a given model wherein each column in the database is mapped to an
+attribute of the model via the Object Relational Model (ORM).  Thus for a given user model
+with two database columns ``name'' and ``email'' the User class itself responds to a
+variety of methods, some explitly defined such as \texttt{User.all}, which returns all
+users in the system, and dynamic methods based on its attributes such as
 \texttt{User.find\_by\_name}, \texttt{User.find\_by\_email},
 \texttt{User.find\_by\_name\_and\_email}, and even
-\texttt{User.find\_all\_by\_name\_and\_email}.  The advantage to the dynamic
-finders is that one might quickly identify them with a simple regular expression
-of the form \texttt{/\\.find(\_all)?\_by\_(?:[\\w\_]+)(?:\_and\_[\\w\_]+)+(/}.
-This consistent, convention based, dynamic function generation is easily and
-deterministically identified as a potential problem point, and as such may be
-triaged.
+\texttt{User.find\_all\_by\_name\_and\_email}.  While using these finders generates
+appropriate SQL automatically, and the parameters themselves are correctly isolated, this
+is a perfect example of Rails conventions that are so consistent they can be trivially
+identified in a static analysis context.
 
-Compounding the complexity slightly is that the parameters to these dynamic
-methods may very well contain user controlled data, in this case passed in via a
-parameters hash(-table).  Thus a simple, incorrect, idiom for dynamically
-calling a related finder would be \texttt{User.where(``name = \#\{params[user\_name]\}''}.
-During the process of static analysis we are able to reason simply about the
+A naive approach one might takes is to identify these finders is with a simple regular
+expression of the form \texttt{/\\.find(\_all)?\_by\_(?:[\\w\_]+)(?:\_and\_[\\w\_]+)+(/}.
+Brakeman opts to use the AST from a Ruby parser as it provides a deeper view into the
+application, but the above would work quickly for a given model.  This consistent,
+convention based, dynamic function generation is easily and deterministically identified
+allowing for further reasoning about the functionality of the code.
+
+Compounding slightly the complexity of isolating SQLi is that the parameters to various
+finders may very well contain user controlled data, in this case passed in via a
+parameters hash(-table).  Thus a simple, incorrect and explicitly recommended against
+\cite{rails_security}, idiom for dynamically
+finding a user by name would be \texttt{User.where(``name = \#\{params[user\_name]\}''}.
+During the process of analysis we are able to reason simply about the
 potential safety of such an expression.  The call signature of the
 \texttt{where} method on an active record model only has a few different
 permutations.  In the case where the first variable is a string it is to be
 interpreted as ``raw'' SQL.  By examining the s-expression of the first
-parameter we can quickly determine if \emph{any}, potentially user-controller,
-variable is interpolated, and if so it is flagged as potentially dangerous.
+parameter we can quickly determine if \emph{any} (potentially user-controller)
+variable is interpolated, and if so it is flagged as potentially dangerous.  In
+the case where the user cannot control the data the flagged expression may not
+be exploitable but is still an indication of an expression that should be
+refactored to follow the best-practice of passing parameters to the ORM outside
+of the query logic\cite{ruby_security_sqli}.
 
-If a programmer attempts a clever, independent implementation of such dynamic
-calls as described above it is fundamentally more difficult to reason about the
-safety of a given expression as there are no well understood an accepted
-conventions about call signatures and handling as have been created during the
-development of the Ruby on Rails framework.  Those conventions alone allow us to
-reason concretely about the safety of a given expression.
+If a programmer attempts a ``clever'', independent re-implementation of such
+dynamic finders as described above it is fundamentally more difficult to reason
+about the safety of a given expression as there are no well understood and
+accepted conventions about call signatures and handling as have been created
+during the development of the Ruby on Rails framework.  Those conventions alone
+allow us to reason concretely about the safety of a given expression.
 
-\section{Mass Assignment}
+\subsection{Insecure Redirect and Rendering}
+
+A common idiom for concluding a controller action in a ruby on rails application
+is to set some sort of notification to be displayed to the user then a specific
+destination is specified.  This redirection to the specified destination, which is
+specified by an options hash, must not be user-controlled.  If the user does control the
+parameters to the redirect call then they may manipulate the \texttt{host} attribute,
+which can be used to send a user, after completing the initial action, to a remote
+malicious host\cite{OWASP_redirect}.  The user will likely trust a given link to a trusted
+site without realizing the host manipulation is occurring. To increase the confidence of
+the victim, the attacker may obfuscate the vulnerability by making the site to which they
+redirect them look identical to the trusted site if they control the destination.
+Identification of such manipulation at runtime is simply done by identifying any variable
+parameters to the redirect.  In that case the redirect is flagged as vulnerable.  The
+Rails framework provides mitigations for such redirection via the \texttt{only\_path}
+option, which can be easily applied by a developer upon being alerted to the
+vulnerability.
+
+Similarly, allowing a user to control the view or template to be rendered in a given
+action may result in an information leak about the system by effectively bypassing any
+authorization systems in-place in the system.  Rendering within Rails is done via the
+\texttt{render}\cite{render_method} method, which expects to receive the name of a partial
+as a string and an options hash.  The path to the rendered view template should never
+contain user-controlled parameters to avoid this vulnerability.  Validating that it does
+not simply means checking for string interpolation in the first parameter, and checking
+for its source.  If the source is the cookie collection, the parameters hash as created by
+Rails, or the request object then the source is deemed to be tainted and is flagged.  Much
+like the taint-safety of Perl, once a variable from one of those sources has been
+manipulated by the developer it is deemed untainted and can no longer be reasoned about.
+
+\section{Explicit Access Controls via Exposed APIs and DSLs}
+
+\subsection{Mass Assignment}
+
+After the well publicized compromise of Github by Egor Homokov\cite{egor}, the subject of
+Mass Assignment vulnerabilities within the Rails framework came, once again, to the fore.
+This vulnerability had been well understood within the community, and as such standardized
+mitigations had been created and well documented.  The mitigations themselves were active
+mitigations requiring understanding of the domain models to implement.  The goal was to
+make such mitigations simple enough they could be implemented quite quickly with
+fundamental understanding of the models and the use of their attribtues.  With the Rails
+3.2.6 release mass-assignment was disabled in development in such a way that an exception
+is thrown if mass-assignment restrictions are violated at runtime as an aid to developers.
+The vulnerability is triggered via the very convenient \texttt{update\_attributes} which
+is provided to update multiple attributes, including ``nested-attributes'' (those
+attributes belonging to domain models associated with the model being updated explicitly),
+via a single method call.  This update is done without regard to the nature of those
+attributes as Rails does not attempt to reason about the use of any attribute.  For
+example, a user may have a boolean attribute to indicate the user is an administrator.
+Other attributes may be explicitly exposed to the user through a web-form such as ``real
+name'' and ``home town''. In this case the user themselves might manipulate that web-form
+fields to include an administrator attribute of their own, as if it were provided by the
+developer, effectively making themselves an administrator.
+
+While current static analysis tools cannot prevent the above scenario, as they
+cannot reason about the relative sensitivity of various fields within the system
+(though this might be accomplished with taint-flow analysis), they can reveal
+those models which lack explicit white or black listing of attribute for
+update.  Rails provides two mechanisms for attribute access control: white
+listing via \texttt{attr\_accessible} and black-listing, the considerably less
+preferable route, via \texttt{attr\_protected}.  The latter mechanism is often used in
+``kitchen-sink'' models which have so many attributes that explicitly
+white-listing those attributes which should be writeable is tedious for the
+developer, so a black-listing of sensitive attributes is provided.  The
+\texttt{attr\_accessible} and \texttt{attr\_protected} ``keywords'' are actually methods
+in a sophisticated DSL, calls to which we might identify to infer that the
+developers in question have simply made a determination about which attributes
+may be sensitive and which are not.  Though this is not a bullet-proof
+methodology it does draw a developer or external auditor to those methods which
+have not explicitly made public declarations about the sensitivity of the
+underlying attributes of a given model.  Moreover, those models which are
+of sufficient complexity to warrant a black-listing via \texttt{attr\_protected}
+may warrant a significant re-factor into smaller models, each of which can have
+explicit access controls applied to them.  In this case, the mere requirement of
+a given model being called indicated a ``pain-point'' within the architecture of
+a web application which requires further refactoring.
+
+\section{External library conventions}
+
+Not only does the Rails framework itself encourage standardization in the
+methods by which various pieces of functionality are achieved, but the entire
+ecosystem has evolved with the same philosophy in mind.  Some libraries and
+executable gems have become so pervasive as to be considered an integral part of
+developing a modern Rails application.
+
+\subsection{Bundler}
+
+With the introduction of the Bundler gem the process of creating, updating, and
+maintaining library dependencies for Rails applications, a process which had
+previously been notoriously difficult, has become trivial.  Bundler interrogates
+a \texttt{Gemfile} and determines which versions of gem, and each of its
+dependencies (recursively) are required.  For example an application may require
+a gem by name, by name and explicit version (useful for specifying a bug-fix
+level of a gem), or an optimistic version which will never be less than the
+specified version, but will choose minor versions up to the next major version
+of an application to avoid API changes that may be introduced into a well
+semantically-versioned gem.  The results of the dependency resolution process
+are stored in a Gemfile.lock which can be interrogated for specific
+vulnerabilities.
+
+\subsection{Extension of Rails by Domain Specific Languages}
+
+Much of Rails which appears at first glance to be made of ``keywords'' as a
+developer might be experienced with from other languages is actually a function
+call within the current class (or one of its ancestors).  Examples of this are
+the \texttt{private}\cite{private_method} ``keyword'' for marking methods as inaccessible to call
+from outside of the current class, and \texttt{attr\_accessible} and
+\texttt{attr\_protected}.  Thus writing specific handlers to analyze the
+parameters to these apparent keywords is no different than writing handlers for
+an other function call.  Moreover this means that extension for gems which
+introduce DSL methods of their own is of the same difficulty as implementing
+handlers for the attribute control methods.  For example the MetaWhere gem by
+Ernie Miller, which exposes some attribute-level searching of ActiveRecord
+models provides the \texttt{assoc\_searchable} and \texttt{assoc\_unsearchable}
+methods to white and blacklist attribute in much the same fashion as Rails
+attribute access methods.
 
 \section{Conclusion}
 The conclusion goes here.
@@ -409,18 +562,40 @@ The authors would like to thank...
 % <OR> manually copy in the resultant .bbl file
 % set second argument of \begin to the number of references
 % (used to reserve space for the reference number labels box)
+\bibliographystyle{IEEEtran}
+\bibliography{IEEEabrv,CFP_response}
+
 \begin{thebibliography}{1}
 
-\bibitem{IEEEhowto:kopka}
-H.~Kopka and P.~W. Daly, \emph{A Guide to \LaTeX}, 3rd~ed.\hskip 1em plus
-  0.5em minus 0.4em\relax Harlow, England: Addison-Wesley, 1999.
+  \bibitem{citing_static_type_inference_for_ruby}
+    \href{http://scholar.google.com/scholar?cites=12614894093793389341&as_sdt=40000005&sciodt=0,22&hl=en}{Google Scholar results for ``Static Type Inference for Ruby''}
+
+  \bibitem{brakeman}
+    Justin Collins. \emph{BrakemanScanner} [Online]. Available: \url{http://brakemanscanner.org} (URL)
+
+  \bibitem{ruby_security}
+    \emph{Ruby on Rails Security Guide} [Online]. \url{http://guides.rubyonrails.com/security.html} (URL)
+
+  \bibitem{ruby_security_sqli}
+    \emph{Ruby on Rails Security Guide} [Online]. \url{http://guides.rubyonrails.org/security.html\#sql-injection} (URL)
+
+  \bibitem{sexp_for_rubyists}
+    Magnus Holm. (2010, February 4). \emph{Sexp for Rubyists} [Online]. \url{http://blog.rubybestpractices.com/posts/judofyr/sexp-for-rubyists.html} (URL)
+
+  \bibitem{OWASP_redirect}
+    \emph{OWASP Top 10 - Redirect} [Online]. \url{https://www.owasp.org/index.php/Top_10_2010-A10} (URL)
+
+  \bibitem{egor}
+    Egor Homakov (2012, March 4) \emph{wow how come I commit in master? O\_o} [Online]. \url{https://github.com/rails/rails/commit/b83965785db1eec019edf1fc272b1aa393e6dc57} (URL)
+
+  \bibitem{render_method}
+    \emph{Rails API Documentation} - \texttt{ActionView::Template\#render} [Online]. \url{http://apidock.com/rails/ActionView/Template/render} (URL)
+
+  \bibitem{private_method}
+    \emph{Rails API Documentation - \texttt{Module::private}} [Online]. \url{http://apidock.com/ruby/Module/private} (URL)
 
 \end{thebibliography}
 
-
-
-
-% that's all folks
 \end{document}
 
 
