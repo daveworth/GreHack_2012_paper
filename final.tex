@@ -473,13 +473,14 @@ is that we \emph{must} act upon their data in some way.  As such it is key to
 limit the ways in which we trust user-controlled data rather than simply
 attempting to avoid the problem.
 
-\subsection{SQLi Detection}
-
 SQL Injection (SQLi), along with cross-site scripting (XSS) and cross-site request forgery
 (CSRF), represent the most well-known, common, and language independent web vulnerability
-classes.  Ruby on Rails, like any other web framework, can be made susceptible to such
+classes.  Ruby on Rails, like any other web framework, can be susceptible to such
 flaws, though it does provide a number of mitigations and best practices to prevent them.
-Moreover, many of the methods which automatically generate SQL are not explicitly defined
+
+\subsection{SQLi Detection}
+
+Many of the methods which automatically generate SQL are not explicitly defined
 by either Ruby on Rails itself or by the user, but rather are automatically generated at
 runtime by Rails.  The generation of these methods is based on interrogation of the
 database which backs a given model wherein each column in the database is mapped to an
@@ -583,8 +584,9 @@ redirect them look identical to the trusted site if they control the destination
 Identification of such manipulation at runtime is simply done by identifying any variable
 parameters to the redirect.  In that case the redirect is flagged as vulnerable.  The
 Rails framework provides mitigations for such redirection via the \texttt{only\_path}
-option, which can be easily applied by a developer upon being alerted to the
-vulnerability.
+option, which strips all protocol, host, and port information from the emitted
+URL, leaving only the resource path behind. This mitigation can be easily and
+quickly be applied by a developer upon being alerted to the vulnerability.
 
 Similarly, allowing a user to control the view or template to be rendered in a given
 action may result in an information leak about the system by effectively bypassing any
