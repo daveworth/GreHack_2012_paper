@@ -1,0 +1,103 @@
+----------------------- REVIEW 1 ---------------------
+PAPER: 12
+TITLE: Leveraging Convention over Configuration for Static Analysis in Dynamic Languages
+AUTHORS: David Worth
+
+OVERALL RATING: 1 (weak accept)
+REVIEWER'S CONFIDENCE: 2 (medium)
+
+OK for a short talk (15 min)
+
+This paper explains how  static analysis problems for dynamic languages can be
+avoided when applications are developed with the help of a robust framework. It
+is an interesting approach.
+
+A finer analysis of solved problems in the current version of Ruby on Rails
+(and open ones) could nicely complete this study.
+
+
+----------------------- REVIEW 2 ---------------------
+PAPER: 12
+TITLE: Leveraging Convention over Configuration for Static Analysis in Dynamic Languages
+AUTHORS: David Worth
+
+OVERALL RATING: 2 (accept)
+REVIEWER'S CONFIDENCE: 3 (high)
+
+The article addresses an interesting problem of analyzing "dynamic languages"
+statically. The article does so by taking an exmaple of Ruby as dynamic language
+and a tool Brakeman Scanner as analysis engine. Following are my remarks:
+
+1. The paper is presentated well, given the space. However, i feel that more
+space can be taken to explain in more detail.
+
+2. By reading the title, it appears as if the paper is talking about static
+analysis of dynamic language in general. However, the remaining oft eh paper
+talks only about Ruby on Rail. Can authers clarify that the presented
+methodology can easily be extended to other dynamic langiages e.g. JavaScript,
+python etc.?  (Done: Python/Grok, Groovy/Grails)
+
+3. As the tool Brakeman Scanner has already been known and there were talks on
+it elsewhere, I expact that authors should talk more about the underlying
+techniques to do static analysis. The authors touch those concepts, e.g. AST,
+s-expressions, occasionally, but my suggestion would be to go in more details.
+This will provide more weight to the article.
+
+* Expand on S-expression generation (by RubyParser+Racc) and S-Expression
+  processing via SexpProcessor. (done)
+  * Detail parsing of Ruby to S-Expressions (done)
+  * Detail analysis of S-Expressions to analyze safety of various calls (done)
+
+4. During the talk, it would be enlighting if authors provide a good example of
+vulnerability that was detected by it by following the techniques implemented in
+this tool. It is not about demo, but about "why those techniques are required
+and why does it work?" sort of question.
+
+
+----------------------- REVIEW 3 ---------------------
+PAPER: 12
+TITLE: Leveraging Convention over Configuration for Static Analysis in Dynamic Languages
+AUTHORS: David Worth
+
+OVERALL RATING: -1 (weak reject)
+REVIEWER'S CONFIDENCE: 1 (low)
+
+This article deals with the problem of using static analysis techniques on
+programs written in dynamic languages. Although the title and abstract seem to
+indicate that this paper addresses a general case, it is actually focused on the
+study of Ruby on Rails applications with a tool called Brakeman.
+
+Details are given regarding how Brakeman detects various vulnerabilities linked
+to incorrect processing of user input or incorrect access control on object
+attributes. However it is surprising that other classical web applications
+vulnerabilities like XSS are not mentioned. Also, the examples of detected
+vulnerabilities are rather trivial. Finally, the authors do not consider other
+languages or the general case. So it seems that this paper does not really
+present anything new in terms of computer security, it is more interesting in
+the context of Ruby on Rails development.
+
+* Add details about more classical web app security issues: XSS/CSRF
+* Display less trivial vulnerability classes
+* Add notes about generality - perhaps the Python framework Grok?
+  (Done: Python/Grok, Groovy/Grails)
+
+----------------------- Andy Lindeman ---------------------
+I liked it a lot! First, some nit-picky things:
+
+* The quoting is weird near the [5] footnote for `User.where`. Can you
+use native double quotes? user_name is missing the prefixed colon. The
+expression is missing an end parenthesis. (done)
+
+* I didn't know about the Rails only_path option. Maybe a sentence
+about what it actually does and/or a footnote? (done)
+
+* IV.A: I think the H in GitHub is capitalized when written out like that.
+(done)
+
+I think I agree with some reviewers that more specifics would be nice,
+but I think you can better cover that in the talk itself. I disagree
+with the one reviewer who asked you to generalize: I think talking to
+the specific case (Ruby/Ruby+Rails) would be more interesting and
+deep, and the general case is maybe somewhat obvious for any framework
+that does convention over configuration.
+
