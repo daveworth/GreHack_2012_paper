@@ -289,7 +289,7 @@ goal is for the framework to simply ``do the right thing'' by default, and more
 sophisticated features and technologies are to be explicitly applied by
 developers with those more advanced requirements and understanding.  Much of the
 power in the Ruby on Rails framework stems from careful use of ``magic''
-functions: dynamically generated functions using Ruby's powerful metaprogramming
+methods: dynamically generated methods using Ruby's powerful metaprogramming
 structures.  As a side effect, many of the methods called by developers are not
 available to a static analysis tool by simply examining the code on disk.  We
 are able to leverage the consistency of the language and framework to perform
@@ -333,8 +333,8 @@ the scanner.
 
 At a high level Brakeman treats Ruby as an ``acceptable Lisp'' and uses
 existing parsers to decompose the code into S-expressions\cite{sexp_for_rubyists}.  Each
-s-expression can then be interrogated for its type, for example a function definition, a
-collection of arguments, a Ruby block, a function call, or a string interpolation.  These
+s-expression can then be interrogated for its type, for example a method definition, a
+collection of arguments, a Ruby block, a method call, or a string interpolation.  These
 basic building blocks forming an abstract syntax tree are the fundamental objects used by
 Brakeman, along with its knowledge of Rails conventions, to analyze a given Rails
 application for potential security vulnerabilities.
@@ -498,7 +498,7 @@ identified in a static analysis context.
 A naive approach one might take is to identify these finders is with a simple regular
 expression.  Brakeman opts to use the abstract syntax tree from a Ruby parser as it
 provides a deeper view into the application, but the above would work quickly for a given
-model.  This consistent, convention-based, dynamic function generation is easily and
+model.  This consistent, convention-based, dynamic method generation is easily and
 deterministically identified allowing for further reasoning about the functionality of the
 code.
 
@@ -684,20 +684,21 @@ code produced may be checked for correctness with a maximum of ease.
 
 \subsection{Extension of Rails by Domain-Specific Languages}
 
-Much of Rails which appears at first glance to be made of ``keywords'', as a
-developer might be experienced with from other languages, is actually a function
-call within the current class (or one of its ancestors).  Examples of this are the
-\texttt{private}\cite{private_method} ``keyword'' for marking methods as inaccessible to
-call from outside of the current class or module, and \texttt{attr\_accessible} and
-\texttt{attr\_protected} for limiting access to a models attributes.  Thus, writing
-specific handlers to analyze the parameters to these apparent keywords is no different
-than writing handlers for an other function call.  Moreover, this means that extending
-Brakeman to support external gems which introduce DSL methods of their own is of the same
-difficulty as implementing handlers for the attribute control methods.  For example, the
+As noted previously, much of Rails which appears at first glance to be made of
+``keywords'', as a developer might be experienced with from other languages, is
+actually a method call within the current class (or one of its ancestors).
+Examples of this are the \texttt{private}\cite{private_method} ``keyword'' for
+marking methods as inaccessible to call from outside of the current class or
+module, and \texttt{attr\_accessible} and \texttt{attr\_protected} for limiting
+access to a models attributes.  Thus, writing specific handlers to analyze the
+parameters to these apparent keywords is no different than writing handlers for
+an other method call.  Moreover, this means that extending Brakeman to support
+external gems which introduce DSL methods of their own is of the same difficulty
+as implementing handlers for the attribute control methods.  For example, the
 MetaWhere gem by Ernie Miller which exposes some attribute-level searching of
 ActiveRecord models, provides the \texttt{assoc\_searchable} and
-\texttt{assoc\_unsearchable} methods to white and blacklist attribute in much the same
-fashion as Rails attribute access methods.
+\texttt{assoc\_unsearchable} methods to white and blacklist attribute in much
+the same fashion as Rails attribute access methods.
 
 \section{Conclusion}
 
