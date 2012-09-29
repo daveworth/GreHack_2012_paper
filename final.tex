@@ -522,6 +522,49 @@ accepted conventions about call signatures and handling as have been created dur
 development of the Ruby on Rails framework.  Those conventions alone allow us to reason
 concretely about the safety of a given expression.
 
+\subsection{Cross-Site Scripting}
+
+Within a given Rails application there are two sources of potential Cross-Site
+Scripting vulnerabilities: Rails itself and user code.  Brakeman is
+Rails-version aware, and adds checks for vulnerabilities within the Rails
+framework as they are made public.  When such vulnerabilities are created with a
+CVE, as they generally are, the warnings produced reference the given CVE and
+the minimum version to which a developer must upgrade in order to no longer be
+vulnerable to the given bug.
+
+The second phase of detecting XSS, briefly outlined above, involves parsing the
+templates within the system and examining them for outputs.  Each templating
+language may have its own mechanism for denoting outputs but two of the most
+common, Erb, and Haml, denote output as following a single \texttt{=} token.  By
+identifying all of the points where output is produced from a Ruby expression we
+can focus on identifying potentially dangerous inputs.  This is the
+pre-processing phase discussed in general above.  Each new templating language
+introduced to the Rails ecosystem must have a custom parser implemented to
+support such scanning since their semantics may vary radically.
+
+The bulk of the work in the analysis stage is performed by the
+\texttt{has\_immediate\_user\_input?} and \texttt{has\_immediate\_model?}
+predicates, which are called on all un-escaped output nodes detected by the
+scanner.  The first of these predicates recursively walks the entire expressions
+looking for access to the \texttt{params}, \texttt{cookies}, or \texttt{request}
+hashes, as well as string interpolations and other potential sources of
+user-controlled data.  Upon finding them a Match struct is returned with the
+vulnerable expression.  The second predicate simply looks for calls directly on
+a model class.  For example, if \texttt{Model.find\_by\_dangerous\_attribute} is
+called directly with user-controlled input,  then a user may circumvent security
+mechanisms or cause the system to leak secure data.  This may be converted to a
+XSS if the returned data can be forced by the user to refer to a given model
+stored in the database which they control.  For example, if the user is able to
+store dangerous Javascript in their profile in a social-networking site, then
+with a carefully crafted URL they might force another user to view their profile
+which executes that Javascript.
+
+Note that in the case of Rails 3.x, output in views is automatically escaped so
+the checks become relatively trivial as the built-in escaping method is called
+automatically.  With that in mind, there have been XSS vulnerabilities within
+Rails itself, and the new mitigations should not be viewed as a claim that Rails
+is somehow immune to this classic vulnerability.
+
 \subsection{Insecure Redirect and Rendering}
 
 A common idiom for concluding a controller action in a Ruby on Rails application
