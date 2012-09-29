@@ -409,6 +409,59 @@ taint-checking to determine if a program is susceptible to cross-site scripting.
 By leaning upon best practices and convention we can easily reason about the
 safety, or lack there-of, of various expressions.
 
+\subsection{The General Case}
+
+Given a language with a well-defined grammar and a parser, we can construct an
+abstract syntax tree (AST) for a program written in that language.  Examining
+that AST will allow us to reason about the properties of the given program.  The
+strength of Brakeman comes less from the nature of Ruby and its abstract syntax
+tree, or its representation as S-Expressions, but rather from leveraging
+convention over configuration.  One such convention, mentioned above, is that
+all HTTP request parameters are exposed in a consistently named variable:
+\texttt{params} within a controller action handling the request.  In this case,
+there is nothing unique about Ruby or Rails in our ability to reason about the
+contents of \texttt{params}.
+
+The Python language includes in its Standard Library the necessary tools for
+parsing Python and interrogating its abstract syntax tree via the ``Python
+Language Services''\cite{python_language_services} tools.  The Grok\cite{grok}
+project touts itself as a convention over configuration web framework with much
+of the same functionality as Rails.  With this pair of powerful tools similar
+static analysis should be possible to that which we perform in the Brakeman
+scanner.  In examining the constructs provided by Grok there are some
+differences which make such analysis more difficult than in the Ruby/Rails case.
+For example, HTTP request parameters are named by the developer rather than by
+the framework, so detecting XSS, for example, does require some variety of
+data-flow analysis and taint-checking.  This short-coming is not a short-coming
+of Grok as a powerful framework, but rather a failing of its \emph{convention}
+based design.  Such a framework could be driven towards a more convention based
+design to enhance its ability to be automatically analyzed and reasoned about.
+
+The Groovy\cite{groovy} programming language is a dynamic language built on the
+Java Virtual Machine built with the goals of implementing Ruby style DSLs and
+other dynamic language techniques with the advantages of static types and
+compilation.  The Grails\cite{grails} web framework is a convention over
+configuration based web framework meant to very closely resemble the Rails
+framework.  Its resemblance to Rails is so strong in fact that many of the
+language constructs appear to be copied directly from Rails into Groovy with the
+most minimal syntax changes possible.  As such, HTTP request
+parameters are passed to controller actions as \texttt{params}, and thus their
+use can be reasoned about in a similar fashion as we do in Brakeman for Rails
+applications.  The CodeNarc\cite{codenarc} project provides some static analysis
+tools for Groovy, though it is aimed at best-practices, and other Groovy
+specific issues.  It would be an interesting exercise for the Groovy/Grails
+community to port some of the functionality from Brakeman to CodeNarc in an
+effort to enhance the security of Grails applications.
+
+While the above comparisons focus on a single, fairly trivial use of convention
+over configuration, specifically the use of a single name for the HTTP
+parameters passed to a given controller action, it is illustrative.  If all
+system inputs are provided in easily recognized, and automatically constructed
+fashions, then the onus of identification of potentially dangerous data within
+an application is taken from the developer or their tools.  The focus of tools
+can then be placed on other functionality such as detecting dangerous uses of
+said data.
+
 \section{Insecure User Input}
 
 The standard adage of ``never trust user(-controlled) input'' is easily
@@ -727,6 +780,20 @@ and participate in the project via contributions to, and papers such as this.
   \bibitem{ruby_node_types}
     Ruby core team. \emph{Ruby source code} [Online].  Available: \url{https://github.com/ruby/ruby/blob/trunk/node.c\#L100-886} (URL)
 
+  \bibitem{grok}
+    Grok core team. \emph{Grok} [Online].  Available: \url{http://grok.zope.org/} (URL)
+
+  \bibitem{python_language_services}
+    Python core team.  \emph{Python Language Services} [Online].  Available: \url{http://docs.python.org/library/language.html} (URL)
+
+  \bibitem{groovy}
+    Groovy core team. \emph{Groovy} [Online].  Available: \url{http://groovy.codehaus.org/} (URL)
+
+  \bibitem{grails}
+    Grails core team. \emph{Grails} [Online].  Available: \url{http://grails.org/} (URL)
+
+  \bibitem{codenarc}
+    CodeNarc team.  \emph{CodeNarc} [Online].  Available: \url{http://codenarc.sourceforge.net/} (URL)
 
 \end{thebibliography}
 
