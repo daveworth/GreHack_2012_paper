@@ -505,7 +505,7 @@ Compounding slightly the complexity of isolating SQLi is that the parameters to 
 finders may very well contain user-controlled data, in this case passed in via a
 parameters hash(-table).  Thus a simple, incorrect and explicitly recommended against
 \cite{rails_security}, idiom for dynamically
-finding a user by name would be \texttt{User.where(``name = \#\{params[user\_name]\}''}.
+finding a user by name would be \texttt{User.where(``name~=~\#\{params[user\_name]\}'')}.
 During the process of analysis we are able to reason simply about the
 potential safety of such an expression.  The call signature of the
 \texttt{where} method on an active record model only has a few different
@@ -607,7 +607,7 @@ unique language intended to express programmatic needs of the developer.
 
 \subsection{Mass Assignment}
 
-After the well-publicized compromise of Github by Egor Homakov\cite{egor}, the subject of
+After the well-publicized compromise of GitHub by Egor Homakov\cite{egor}, the subject of
 Mass Assignment vulnerabilities within the Rails framework came, once again, to the fore.
 This vulnerability had been well understood within the community, and as such standardized
 mitigations had been created and well documented.  The mitigations themselves were active
