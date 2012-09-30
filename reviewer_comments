@@ -76,7 +76,7 @@ languages or the general case. So it seems that this paper does not really
 present anything new in terms of computer security, it is more interesting in
 the context of Ruby on Rails development.
 
-* Add details about more classical web app security issues: XSS/CSRF
+* Add details about more classical web app security issues: XSS/CSRF (done)
 * Display less trivial vulnerability classes
 * Add notes about generality - perhaps the Python framework Grok?
   (Done: Python/Grok, Groovy/Grails)
